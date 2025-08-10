@@ -1,0 +1,45 @@
+# This file defines the frontend web application, using a LoadBalancer Service.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  labels:
+    app: frontend
+spec:
+  # We will use only one replica as requested.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend-container
+        # The ECR URL for your frontend image.
+        image: 267092042432.dkr.ecr.us-west-2.amazonaws.com/todo-frontend:latest
+        ports:
+        - containerPort: 80 # The port NGINX listens on
+---
+# This service creates an AWS Load Balancer to expose the frontend to the public internet.
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  annotations:
+    # Use the AWS Load Balancer to provision an ALB
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb" # or "elb"
+    # This annotation creates an Internet-facing Application Load Balancer
+    # We will use the ALB as it is best suited for our application
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+spec:
+  type: LoadBalancer # This is the key change
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
